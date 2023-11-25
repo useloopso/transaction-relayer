@@ -8,23 +8,24 @@ type Config struct {
 }
 
 type ExecutePayload struct {
-	Address   string `json:"address"`
-	Abi       string `json:"abi"`
-	Nonce     uint   `json:"nonce"`
-	Signature string `json:"signature"`
+	Address string      `json:"address"`
+	Tx      Transaction `json:"transaction"`
+}
+
+type Transaction struct {
+	Abi            string `json:"abi"`
+	Nonce          string `json:"nonce"`
+	Signature      string `json:"signature"`
+	ValidityTstamp string `json:"validityTimestamps"`
 }
 
 type ExecuteResponse struct {
 	TransactionHash string `json:"transactionHash"`
 }
 
-type TransactionForSigning struct {
-	ExecutePayload  ExecutePayload
-	ResponseChannel chan ExecuteResponse
-	ErrorChannel    chan error
-}
-
-type SignedTransaction struct {
-	SignedTransaction string
-	TransactionHash   string
+type Quota struct {
+	Quota      int    `json:"quota"`
+	Unit       string `json:"unit"`
+	TotalQuota int    `json:"totalQuota"`
+	ResetDate  int    `json:"resetDate"`
 }

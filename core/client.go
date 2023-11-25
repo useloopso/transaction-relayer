@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -15,60 +14,57 @@ import (
 	"github.com/useloopso/transaction-relayer/types"
 )
 
-func ExecuteRelayCall(execPayload types.ExecutePayload) error {
+func ExecuteRelayCall(execPayload types.ExecutePayload) (string, error) {
 	client, err := ethclient.Dial(config.Get().NodeUrl)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	universalProfile, err := contracts.NewUniversalProfile(common.HexToAddress(execPayload.Address), client)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	keyManagerAddr, err := universalProfile.Owner(nil)
+	fmt.Println("key manager address: ", keyManagerAddr)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	keyManager, err := contracts.NewLSP6(keyManagerAddr, client)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	auth, err := getAuth()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	sig, err := hexutil.Decode(execPayload.Signature)
+	sig, err := hexutil.Decode(execPayload.Tx.Signature)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	abiPayload, err := hexutil.Decode(execPayload.Abi)
+	abiPayload, err := hexutil.Decode(execPayload.Tx.Abi)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	nonce := big.NewInt(int64(execPayload.Nonce))
+	var nonce big.Int
+	nonce.SetString(execPayload.Tx.Nonce, 10)
 
 	// TODO: Replace w input from user - this timestamp means valid until 1 Jan 2025
 	validityTstamp := big.NewInt(0)
 
-	tx, err := keyManager.ExecuteRelayCall(auth, sig, nonce, validityTstamp, abiPayload)
+	tx, err := keyManager.ExecuteRelayCall(auth, sig, &nonce, validityTstamp, abiPayload)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, err = bind.WaitMined(context.Background(), client, tx)
-	if err != nil {
-		return err
-	}
+	fmt.Println("Relay transaction executed: ", tx.Hash().String())
 
-	fmt.Println("Relay transaction executed: ", tx.Hash())
-
-	return nil
+	return tx.Hash().String(), nil
 }
 
 func getAuth() (*bind.TransactOpts, error) {
